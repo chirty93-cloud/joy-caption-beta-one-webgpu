@@ -178,7 +178,7 @@ with gr.Blocks() as demo:
 		fill_height=True,
 		multimodal=True,
 		textbox=textbox,
-		additional_inputs_accordion=gr.Accordion(label="⚙️ Parameters", open=True, render=True),
+		additional_inputs_accordion=gr.Accordion(label="⚙️ Parameters", open=True, render=False),
 		additional_inputs=[
 			gr.Slider(minimum=0,
 						maximum=1, 
@@ -198,7 +198,7 @@ with gr.Blocks() as demo:
 						value=1024, 
 						label="Max new tokens", 
 						render=False ),
-			gr.Checkbox(label="Help improve JoyCaption by logging your text query", value=True, render=True),
+			gr.Checkbox(label="Help improve JoyCaption by logging your text query", value=True, render=False),
 		],
     )
 
