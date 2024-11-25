@@ -80,7 +80,8 @@ def chat_joycaption(message: dict, history, temperature: float, max_new_tokens: 
 
 	# Load image
 	if "files" not in message or len(message["files"]) != 1:
-		raise ValueError("This model requires exactly one image as input.")
+		yield "ERROR: This model requires exactly one image as input."
+		return
 	
 	image = Image.open(message["files"][0])
 	
@@ -169,6 +170,7 @@ with gr.Blocks() as demo:
 		fn=chat_joycaption,
 		chatbot=chatbot,
 		fill_height=True,
+		multimodal=True,
 		additional_inputs_accordion=gr.Accordion(label="⚙️ Parameters", open=False, render=False),
 		additional_inputs=[
 			gr.Slider(minimum=0,
