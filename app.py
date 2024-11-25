@@ -72,10 +72,10 @@ assert isinstance(end_of_header_id, int) and isinstance(end_of_turn_id, int)
 
 @spaces.GPU()
 @torch.no_grad()
-def chat_joycaption(message: dict, history, temperature: float, max_new_tokens: int) -> Generator[str, None, None]:
+def chat_joycaption(message: dict, history, temperature: float, top_p: float, max_new_tokens: int, log_prompt: bool) -> Generator[str, None, None]:
 	torch.cuda.empty_cache()
 
-	print(message)
+	chat_interface.chatbot_state
 
 	# Prompts are always stripped in training for now
 	prompt = message['text'].strip()
@@ -88,7 +88,8 @@ def chat_joycaption(message: dict, history, temperature: float, max_new_tokens: 
 	image = Image.open(message["files"][0])
 	
 	# Log the prompt
-	print(f"Prompt: {prompt}")
+	if log_prompt:
+		print(f"Prompt: {prompt}")
 
 	# Preprocess image
 	# NOTE: I found the default processor for so400M to have worse results than just using PIL directly
@@ -148,7 +149,7 @@ def chat_joycaption(message: dict, history, temperature: float, max_new_tokens: 
 		use_cache=True,
 		temperature=temperature,
 		top_k=None,
-		top_p=0.9,
+		top_p=top_p,
 		streamer=streamer,
 	)
 
@@ -170,14 +171,14 @@ textbox = gr.MultimodalTextbox(file_types=["image"], file_count="single")
 with gr.Blocks() as demo:
 	gr.HTML(TITLE)
 	gr.Markdown(DESCRIPTION)
-	gr.ChatInterface(
+	chat_interface = gr.ChatInterface(
 		fn=chat_joycaption,
 		chatbot=chatbot,
 		type="messages",
 		fill_height=True,
 		multimodal=True,
 		textbox=textbox,
-		additional_inputs_accordion=None,#gr.Accordion(label="⚙️ Parameters", open=False, render=False),
+		additional_inputs_accordion=gr.Accordion(label="⚙️ Parameters", open=True, render=True),
 		additional_inputs=[
 			gr.Slider(minimum=0,
 						maximum=1, 
@@ -185,22 +186,26 @@ with gr.Blocks() as demo:
 						value=0.6, 
 						label="Temperature", 
 						render=False),
-			gr.Slider(minimum=128, 
+			gr.Slider(minimum=0,
+			 			maximum=1,
+						step=0.05,
+						value=0.9,
+						label="Top p",
+						render=False),
+			gr.Slider(minimum=8, 
 						maximum=4096,
 						step=1,
 						value=1024, 
 						label="Max new tokens", 
 						render=False ),
-			],
-		examples=[
-			['How to setup a human base on Mars? Give short answer.'],
-			['Explain theory of relativity to me like I’m 8 years old.'],
-			['What is 9,000 * 9,000?'],
-			['Write a pun-filled happy birthday message to my friend Alex.'],
-			['Justify why a penguin might make a good king of the jungle.']
-			],
-		cache_examples=False,
+			gr.Checkbox(label="Help improve JoyCaption by logging your text query", default=True, render=True),
+		],
     )
+
+def new_trim_history(self, message, history_with_input):
+	return message, []
+
+chat_interface._process_msg_and_trim_history = new_trim_history.__get__(chat_interface, chat_interface.__class__)
 
 
 if __name__ == "__main__":
