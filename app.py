@@ -75,6 +75,8 @@ assert isinstance(end_of_header_id, int) and isinstance(end_of_turn_id, int)
 def chat_joycaption(message: dict, history, temperature: float, max_new_tokens: int) -> Generator[str, None, None]:
 	torch.cuda.empty_cache()
 
+	print(message)
+
 	# Prompts are always stripped in training for now
 	prompt = message['text'].strip()
 
@@ -134,6 +136,8 @@ def chat_joycaption(message: dict, history, temperature: float, max_new_tokens: 
 	pixel_values = TVF.normalize(pixel_values, [0.5], [0.5])
 	pixel_values = pixel_values.to(torch.bfloat16)
 
+	streamer = TextIteratorStreamer(tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
+
 	generate_kwargs = dict(
 		input_ids=input_ids,
 		pixel_values=pixel_values,
@@ -151,7 +155,6 @@ def chat_joycaption(message: dict, history, temperature: float, max_new_tokens: 
 	if temperature == 0:
 		generate_kwargs["do_sample"] = False
 	
-	streamer = TextIteratorStreamer(tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
 	t = Thread(target=model.generate, kwargs=generate_kwargs)
 	t.start()
 
@@ -161,7 +164,8 @@ def chat_joycaption(message: dict, history, temperature: float, max_new_tokens: 
 		yield "".join(outputs)
 
 
-chatbot=gr.Chatbot(height=450, placeholder=PLACEHOLDER, label='Gradio ChatInterface')
+chatbot=gr.Chatbot(height=450, placeholder=PLACEHOLDER, label='Gradio ChatInterface', type="messages")
+textbox = gr.MultimodalTextbox(file_types=["image"], file_count="single")
 
 with gr.Blocks() as demo:
 	gr.HTML(TITLE)
@@ -171,7 +175,8 @@ with gr.Blocks() as demo:
 		chatbot=chatbot,
 		fill_height=True,
 		multimodal=True,
-		additional_inputs_accordion=gr.Accordion(label="⚙️ Parameters", open=False, render=False),
+		textbox=textbox,
+		additional_inputs_accordion=None,#gr.Accordion(label="⚙️ Parameters", open=False, render=False),
 		additional_inputs=[
 			gr.Slider(minimum=0,
 						maximum=1, 
