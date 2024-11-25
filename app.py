@@ -173,6 +173,7 @@ with gr.Blocks() as demo:
 	gr.ChatInterface(
 		fn=chat_joycaption,
 		chatbot=chatbot,
+		type="messages",
 		fill_height=True,
 		multimodal=True,
 		textbox=textbox,
