@@ -198,7 +198,7 @@ with gr.Blocks() as demo:
 						value=1024, 
 						label="Max new tokens", 
 						render=False ),
-			gr.Checkbox(label="Help improve JoyCaption by logging your text query", default=True, render=True),
+			gr.Checkbox(label="Help improve JoyCaption by logging your text query", value=True, render=True),
 		],
     )
 
