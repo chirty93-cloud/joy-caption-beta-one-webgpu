@@ -13,24 +13,21 @@ MODEL_PATH = "fancyfeast/llama-joycaption-alpha-two-vqa-test-1"
 TITLE = "<h1><center>JoyCaption Alpha Two - VQA Test - (2024-11-25a)</center></h1>"
 DESCRIPTION = """
 <div>
-<p>🚨🚨🚨 BY USING THIS SPACE YOU AGREE THAT YOUR QUERIES (but not images) <i>MAY</i> BE LOGGED AND COLLECTED ANONYMOUSLY 🚨🚨🚨</p>
 <p>🧪🧪🧪 This an experiment to see how well JoyCaption Alpha Two can learn to answer questions about images and follow instructions.
-I've only finetuned it on 600 examples, so it is highly experimental, very weak, broken, and volatile.  But for only training 600 examples,
-I thought it was performing surprisingly well and wanted to share. 🧪🧪🧪</p>
-<p>Unlike JoyCaption Alpha Two, you can ask this finetune questions about the image, like "What is he holding in his hand?", "Where might this be?",
-and "What are they doing?".  It can also follow instructions, like "Write me a poem about this image",
+I've only finetuned it on 600 examples, so it is **highly experimental, very weak, broken, and volatile**.  But for only training 600 examples,
+I thought it was performing surprisingly well and wanted to share.</p>
+<p>**This model cannot see any chat history.**</p>
+<p>🧐💬📸 Unlike JoyCaption Alpha Two, you can ask this finetune questions about the image, like "What is he holding in his hand?", "Where might this be?",
+and "What are they wearing?".  It can also follow instructions, like "Write me a poem about this image",
 "Write a caption but don't use any ambigious language, and make sure you mention that the image is from Instagram.", and
 "Output JSON with the following properties: 'skin_tone', 'hair_style', 'hair_length', 'clothing', 'background'." Remember that this was only finetuned on
 600 VQA/instruction examples, so it is _very_ limited right now.  Expect it to frequently fallback to its base behavior of just writing image descriptions.
 Expect accuracy to be lower.  Expect glitches.  Despite that, I've found that it will follow most queries I've tested it with, even outside its training,
 with enough coaxing and re-rolling.</p>
-<p>About the 🚨🚨🚨 above: this space will log all prompts sent to it.  The only thing this space logs is the text query; no images, no user data, etc.
-I cannot see what images you send, and frankly, I don't want to.  But knowing what kinds of instructions and queries users want JoyCaption to handle will
-help guide me in building JoyCaption's VQA dataset.  I've found out the hard way that almost all public VQA datasets are garbage and don't do a good job of
-training and exercising visual understanding.  Certainly not good enough to handle the complicated instructions that will allow JoyCaption users to guide and
-direct how JoyCaption writes descriptions and captions.  So I'm building my own dataset, that will be made public.  So, with peace and love, this space logs the text
-queries.  As always, the model itself is completely public and free to use outside of this space.  And, of course, I have no control nor access to what HuggingFace,
-which are graciously hosting this space, log.</p>
+<p>🚨🚨🚨 If the "Help improve JoyCaption" box is checked, the _text_ query you write will be logged and I _might_ use it to help improve JoyCaption.
+It does not log images, user data, etc; only the text query.  I cannot see what images you send, and frankly, I don't want to.  But knowing what kinds of instructions
+and queries users want JoyCaption to handle will help guide me in building JoyCaption's VQA dataset.  This dataset will be made public.  As always, the model itself is completely
+public and free to use outside of this space.  And, of course, I have no control nor access to what HuggingFace, which are graciously hosting this space, collects.</p>
 </div>
 """
 
@@ -170,7 +167,6 @@ textbox = gr.MultimodalTextbox(file_types=["image"], file_count="single")
 
 with gr.Blocks() as demo:
 	gr.HTML(TITLE)
-	gr.Markdown(DESCRIPTION)
 	chat_interface = gr.ChatInterface(
 		fn=chat_joycaption,
 		chatbot=chatbot,
@@ -201,11 +197,7 @@ with gr.Blocks() as demo:
 			gr.Checkbox(label="Help improve JoyCaption by logging your text query", value=True, render=False),
 		],
     )
-
-def new_trim_history(self, message, history_with_input):
-	return message, []
-
-chat_interface._process_msg_and_trim_history = new_trim_history.__get__(chat_interface, chat_interface.__class__)
+	gr.Markdown(DESCRIPTION)
 
 
 if __name__ == "__main__":
