@@ -27,13 +27,9 @@ DESCRIPTION = """
 <h2>Quick-start</h2>
 <ol>
   <li><strong>Upload or drop</strong> an image in the left-hand panel.</li>
-  <li>Pick a <strong>Caption Type</strong> and, if you wish, adjust the
-      <strong>Caption Length</strong>.</li>
-  <li>(Optional) tick any <strong>Extra Options</strong> checkboxes
-      &nbsp;–&nbsp;these add or remove specific details in the caption.</li>
-  <li>(Optional) expand <em>Generation settings</em> to tune
-      <code>temperature</code>, <code>top-p</code>, or
-      <code>max&nbsp;tokens</code>.</li>
+  <li>Pick a <strong>Caption Type</strong> and, if you wish, adjust the <strong>Caption Length</strong>.</li>
+  <li>(Optional) <em>expand the "Extra Options" accordion</em> and tick any boxes that should influence the caption.</li>
+  <li>(Optional) open <em>Generation settings</em> to adjust <code>temperature</code>, <code>top-p</code>, or <code>max&nbsp;tokens</code>.</li>
   <li>Press <kbd>Caption</kbd>.  
       The prompt sent to the model appears in the <em>Prompt</em> box (editable),  
       and the resulting caption streams into the <em>Caption</em> box.</li>
@@ -50,21 +46,20 @@ DESCRIPTION = """
   <tr><td><strong>Straightforward</strong></td>
       <td>Objective, no fluff, and more succinct than Descriptive.</td></tr>
   <tr><td><strong>Stable Diffusion Prompt</strong></td>
-      <td>Reverse-engineers a prompt that could have produced the image in a
-          SD/T2I model.</td></tr>
+      <td>Reverse-engineers a prompt that could have produced the image in a SD/T2I model.<br><em>⚠︎ Experimental – can glitch ≈ 3 % of the time.</em></td></tr>
   <tr><td><strong>MidJourney</strong></td>
-      <td>Same idea as above but tuned to MidJourney’s prompt style.</td></tr>
+      <td>Same idea as above but tuned to MidJourney’s prompt style.<br><em>⚠︎ Experimental – can glitch ≈ 3 % of the time.</em></td></tr>
   <tr><td><strong>Danbooru tag list</strong></td>
       <td>Comma-separated tags strictly following Danbooru conventions
-          (artist:, copyright:, etc.). Lower-case underscores only.</td></tr>
+          (artist:, copyright:, etc.). Lower-case underscores only.<br><em>⚠︎ Experimental – can glitch ≈ 3 %.</em></td></tr>
   <tr><td><strong>e621 tag list</strong></td>
       <td>Alphabetical, namespaced tags in e621 style – includes species/meta
-          tags when relevant.</td></tr>
+          tags when relevant.<br><em>⚠︎ Experimental – can glitch ≈ 3 %.</em></td></tr>
   <tr><td><strong>rul34 tag list</strong></td>
       <td>Rule34 style alphabetical tag dump; artist/copyright/character
-          prefixes first.</td></tr>
+          prefixes first.<br><em>⚠︎ Experimental – can glitch ≈ 3 %.</em></td></tr>
   <tr><td><strong>Booru-like tag list</strong></td>
-      <td>Looser tag list when you want labels but not a specific Booru format.</td></tr>
+      <td>Looser tag list when you want labels but not a specific Booru format.<br><em>⚠︎ Experimental – can glitch ≈ 3 %.</em></td></tr>
   <tr><td><strong>Art Critic</strong></td>
       <td>Paragraph of art-historical commentary: composition, symbolism, style,
           lighting, movement, etc.</td></tr>
@@ -73,6 +68,12 @@ DESCRIPTION = """
   <tr><td><strong>Social Media Post</strong></td>
       <td>Catchy caption aimed at platforms like Instagram or BlueSky.</td></tr>
 </table>
+
+<p style="margin-top:0.6em">
+  <strong>Note&nbsp;on Booru modes:</strong> They’re tuned for
+  anime-style / illustration imagery; accuracy drops on real-world photographs
+  or highly abstract artwork.
+</p>
 
 <!-- ───────────────────── Extras + generation notes ───────────────── -->
 <h3>Extra Options</h3>
@@ -267,38 +268,39 @@ with gr.Blocks() as demo:
 				value="long",
 			)
 
-			extra_options = gr.CheckboxGroup(
-				choices=[
-					"If there is a person/character in the image you must refer to them as {name}.",
-					"Do NOT include information about people/characters that cannot be changed (like ethnicity, gender, etc), but do still include changeable attributes (like hair style).",
-					"Include information about lighting.",
-					"Include information about camera angle.",
-					"Include information about whether there is a watermark or not.",
-					"Include information about whether there are JPEG artifacts or not.",
-					"If it is a photo you MUST include information about what camera was likely used and details such as aperture, shutter speed, ISO, etc.",
-					"Do NOT include anything sexual; keep it PG.",
-					"Do NOT mention the image's resolution.",
-					"You MUST include information about the subjective aesthetic quality of the image from low to very high.",
-					"Include information on the image's composition style, such as leading lines, rule of thirds, or symmetry.",
-					"Do NOT mention any text that is in the image.",
-					"Specify the depth of field and whether the background is in focus or blurred.",
-					"If applicable, mention the likely use of artificial or natural lighting sources.",
-					"Do NOT use any ambiguous language.",
-					"Include whether the image is sfw, suggestive, or nsfw.",
-					"ONLY describe the most important elements of the image.",
-					"If it is a work of art, do not include the artist's name or the title of the work.",
-					"Identify the image orientation (portrait, landscape, or square) and aspect ratio if obvious.",
-					"""Use vulgar slang and profanity, such as (but not limited to) "fucking," "slut," "cock," etc.""",
-					"Do NOT use polite euphemisms—lean into blunt, casual phrasing.",
-					"Include information about the ages of any people/characters when applicable.",
-					"Mention whether the image depicts an extreme close-up, close-up, medium close-up, medium shot, cowboy shot, medium wide shot, wide shot, or extreme wide shot.",
-					"Do not mention the mood/feeling/etc of the image.",
-					"Explicitly specify the vantage height (eye-level, low-angle worm’s-eye, bird’s-eye, drone, rooftop, etc.).",
-					"If there is a watermark, you must mention it.",
-					"""Your response will be used by a text-to-image model, so avoid useless meta phrases like “This image shows…”, "You are looking at...", etc.""",
-				],
-				label="Extra Options"
-			)
+			with gr.Accordion("Extra Options", open=False):
+				extra_options = gr.CheckboxGroup(
+					choices=[
+						"If there is a person/character in the image you must refer to them as {name}.",
+						"Do NOT include information about people/characters that cannot be changed (like ethnicity, gender, etc), but do still include changeable attributes (like hair style).",
+						"Include information about lighting.",
+						"Include information about camera angle.",
+						"Include information about whether there is a watermark or not.",
+						"Include information about whether there are JPEG artifacts or not.",
+						"If it is a photo you MUST include information about what camera was likely used and details such as aperture, shutter speed, ISO, etc.",
+						"Do NOT include anything sexual; keep it PG.",
+						"Do NOT mention the image's resolution.",
+						"You MUST include information about the subjective aesthetic quality of the image from low to very high.",
+						"Include information on the image's composition style, such as leading lines, rule of thirds, or symmetry.",
+						"Do NOT mention any text that is in the image.",
+						"Specify the depth of field and whether the background is in focus or blurred.",
+						"If applicable, mention the likely use of artificial or natural lighting sources.",
+						"Do NOT use any ambiguous language.",
+						"Include whether the image is sfw, suggestive, or nsfw.",
+						"ONLY describe the most important elements of the image.",
+						"If it is a work of art, do not include the artist's name or the title of the work.",
+						"Identify the image orientation (portrait, landscape, or square) and aspect ratio if obvious.",
+						"""Use vulgar slang and profanity, such as (but not limited to) "fucking," "slut," "cock," etc.""",
+						"Do NOT use polite euphemisms—lean into blunt, casual phrasing.",
+						"Include information about the ages of any people/characters when applicable.",
+						"Mention whether the image depicts an extreme close-up, close-up, medium close-up, medium shot, cowboy shot, medium wide shot, wide shot, or extreme wide shot.",
+						"Do not mention the mood/feeling/etc of the image.",
+						"Explicitly specify the vantage height (eye-level, low-angle worm’s-eye, bird’s-eye, drone, rooftop, etc.).",
+						"If there is a watermark, you must mention it.",
+						"""Your response will be used by a text-to-image model, so avoid useless meta phrases like “This image shows…”, "You are looking at...", etc.""",
+					],
+					label="Select one or more",
+				)
 			
 			name_input = gr.Textbox(label="Person / Character Name")
 
