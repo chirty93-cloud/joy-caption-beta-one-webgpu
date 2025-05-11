@@ -8,11 +8,10 @@ from typing import Generator
 
 
 MODEL_PATH = "fancyfeast/llama-joycaption-beta-one-hf-llava"
-TITLE = "<h1><center>JoyCaption Beta One - (2025-05-10a)</center></h1>"
+TITLE = "<h1><center>JoyCaption Beta One - (2025-05-10a)</center></h1>JoyCaption is an image captioning model"
 DESCRIPTION = """
 <div>
 <p></p>
-<p>**This model cannot see any chat history.**</p>
 <p>🚨🚨🚨 If the "Help improve JoyCaption" box is checked, the _text_ query you write will be logged and I _might_ use it to help improve JoyCaption.
 It does not log images, user data, etc; only the text query.  I cannot see what images you send, and frankly, I don't want to.  But knowing what kinds of instructions
 and queries users want JoyCaption to handle will help guide me in building JoyCaption's dataset.  This dataset will be made public.  As always, the model itself is completely
@@ -33,7 +32,7 @@ CAPTION_TYPE_MAP = {
 		"Write a descriptive caption for this image in a casual tone within {word_count} words.",
 		"Write a {length} descriptive caption for this image in a casual tone.",
 	],
-	"Training Prompt": [
+	"Stable Diffusion Prompt": [
 		"Write a stable diffusion prompt for this image.",
 		"Write a stable diffusion prompt for this image within {word_count} words.",
 		"Write a {length} stable diffusion prompt for this image.",
@@ -237,6 +236,9 @@ with gr.Blocks() as demo:
 		inputs=[input_image, prompt_box, temperature_slider, top_p_slider, max_tokens_slider, log_prompt],
 		outputs=output_caption,
 	)
+
+	# Initial prompt
+	prompt_box.value = build_prompt(caption_type.value, caption_length.value, extra_options.value, name_input.value)
 
 	gr.Markdown(DESCRIPTION)
 

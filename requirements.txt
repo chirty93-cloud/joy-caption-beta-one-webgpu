@@ -4,4 +4,3 @@ torch
 transformers==4.51.0
 sentencepiece
 torchvision
-pydantic==2.10.6
