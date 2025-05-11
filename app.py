@@ -8,10 +8,91 @@ from typing import Generator
 
 
 MODEL_PATH = "fancyfeast/llama-joycaption-beta-one-hf-llava"
-TITLE = "<h1><center>JoyCaption Beta One - (2025-05-10a)</center></h1>JoyCaption is an image captioning model"
+TITLE = """<style>
+  .joy-header   {display:flex; align-items:center; justify-content:center;
+                 gap:16px; margin:4px 0 12px;}
+  .joy-header h1{margin:0; font-size:1.9rem; line-height:1.2;}
+  .joy-header p {margin:2px 0 0; font-size:0.9rem; color:#666;}
+</style>
+
+<div class="joy-header">
+  <div>
+    <h1>JoyCaption <span style="font-weight:400">Beta&nbsp;One</span></h1>
+    <p>Image-captioning model &nbsp;|&nbsp; build 2025-05-10a</p>
+  </div>
+</div>
+<hr>"""
 DESCRIPTION = """
 <div>
-<p></p>
+<h2>Quick-start</h2>
+<ol>
+  <li><strong>Upload or drop</strong> an image in the left-hand panel.</li>
+  <li>Pick a <strong>Caption Type</strong> and, if you wish, adjust the
+      <strong>Caption Length</strong>.</li>
+  <li>(Optional) tick any <strong>Extra Options</strong> checkboxes
+      &nbsp;–&nbsp;these add or remove specific details in the caption.</li>
+  <li>(Optional) expand <em>Generation settings</em> to tune
+      <code>temperature</code>, <code>top-p</code>, or
+      <code>max&nbsp;tokens</code>.</li>
+  <li>Press <kbd>Caption</kbd>.  
+      The prompt sent to the model appears in the <em>Prompt</em> box (editable),  
+      and the resulting caption streams into the <em>Caption</em> box.</li>
+</ol>
+
+<!-- ───────────────────── Caption-type reference ──────────────────── -->
+<h2>Caption Types</h2>
+<table>
+  <tr><th>Mode</th><th>What it does</th></tr>
+  <tr><td><strong>Descriptive</strong></td>
+      <td>Formal, detailed prose description.</td></tr>
+  <tr><td><strong>Descriptive&nbsp;(Casual)</strong></td>
+      <td>Similar to Descriptive but with a friendlier, conversational tone.</td></tr>
+  <tr><td><strong>Straightforward</strong></td>
+      <td>Objective, no fluff, and more succinct than Descriptive.</td></tr>
+  <tr><td><strong>Stable Diffusion Prompt</strong></td>
+      <td>Reverse-engineers a prompt that could have produced the image in a
+          SD/T2I model.</td></tr>
+  <tr><td><strong>MidJourney</strong></td>
+      <td>Same idea as above but tuned to MidJourney’s prompt style.</td></tr>
+  <tr><td><strong>Danbooru tag list</strong></td>
+      <td>Comma-separated tags strictly following Danbooru conventions
+          (artist:, copyright:, etc.). Lower-case underscores only.</td></tr>
+  <tr><td><strong>e621 tag list</strong></td>
+      <td>Alphabetical, namespaced tags in e621 style – includes species/meta
+          tags when relevant.</td></tr>
+  <tr><td><strong>rul34 tag list</strong></td>
+      <td>Rule34 style alphabetical tag dump; artist/copyright/character
+          prefixes first.</td></tr>
+  <tr><td><strong>Booru-like tag list</strong></td>
+      <td>Looser tag list when you want labels but not a specific Booru format.</td></tr>
+  <tr><td><strong>Art Critic</strong></td>
+      <td>Paragraph of art-historical commentary: composition, symbolism, style,
+          lighting, movement, etc.</td></tr>
+  <tr><td><strong>Product Listing</strong></td>
+      <td>Short marketing copy as if selling the depicted object.</td></tr>
+  <tr><td><strong>Social Media Post</strong></td>
+      <td>Catchy caption aimed at platforms like Instagram or BlueSky.</td></tr>
+</table>
+
+<!-- ───────────────────── Extras + generation notes ───────────────── -->
+<h3>Extra Options</h3>
+<p>These check-boxes fine-tune what the model should or should not mention:
+lighting, camera angle, aesthetic rating, profanity, etc.  
+Toggle them before hitting <kbd>Caption</kbd>; the prompt box will update
+instantly.</p>
+
+<h3>Generation settings</h3>
+<ul>
+  <li><strong>Temperature</strong> – randomness.  
+      0&nbsp;=&nbsp;deterministic; higher =&nbsp;more variety.</li>
+  <li><strong>Top-p</strong> – nucleus sampling cutoff. Lower =&nbsp;safer,
+      higher =&nbsp;freer.</li>
+  <li><strong>Max&nbsp;New Tokens</strong> – hard stop for the model’s output length.</li>
+</ul>
+
+<p>Enjoy experimenting, and feel free to open an issue if you
+spot any bugs or have feature ideas!</p>
+<hr>
 <p>🚨🚨🚨 If the "Help improve JoyCaption" box is checked, the _text_ query you write will be logged and I _might_ use it to help improve JoyCaption.
 It does not log images, user data, etc; only the text query.  I cannot see what images you send, and frankly, I don't want to.  But knowing what kinds of instructions
 and queries users want JoyCaption to handle will help guide me in building JoyCaption's dataset.  This dataset will be made public.  As always, the model itself is completely
@@ -19,33 +100,46 @@ public and free to use outside of this space.  And, of course, I have no control
 </div>
 """
 
-PLACEHOLDER = """
-"""
 CAPTION_TYPE_MAP = {
 	"Descriptive": [
-		"Write a descriptive caption for this image in a formal tone.",
-		"Write a descriptive caption for this image in a formal tone within {word_count} words.",
-		"Write a {length} descriptive caption for this image in a formal tone.",
+		"Write a detailed description for this image.",
+		"Write a detailed description for this image in {word_count} words or less.",
+		"Write a {length} detailed description for this image.",
 	],
-	"Descriptive (Informal)": [
+	"Descriptive (Casual)": [
 		"Write a descriptive caption for this image in a casual tone.",
 		"Write a descriptive caption for this image in a casual tone within {word_count} words.",
 		"Write a {length} descriptive caption for this image in a casual tone.",
 	],
+	"Straightforward": [
+		"Write a straightforward caption for this image. Begin with the main subject and medium. Mention pivotal elements—people, objects, scenery—using confident, definite language. Focus on concrete details like color, shape, texture, and spatial relationships. Show how elements interact. Omit mood and speculative wording. If text is present, quote it exactly. Note any watermarks, signatures, or compression artifacts. Never mention what's absent, resolution, or unobservable details. Vary your sentence structure and keep the description concise, without starting with “This image is…” or similar phrasing.",
+		"Write a straightforward caption for this image within {word_count} words. Begin with the main subject and medium. Mention pivotal elements—people, objects, scenery—using confident, definite language. Focus on concrete details like color, shape, texture, and spatial relationships. Show how elements interact. Omit mood and speculative wording. If text is present, quote it exactly. Note any watermarks, signatures, or compression artifacts. Never mention what's absent, resolution, or unobservable details. Vary your sentence structure and keep the description concise, without starting with “This image is…” or similar phrasing.",
+		"Write a {length} straightforward caption for this image. Begin with the main subject and medium. Mention pivotal elements—people, objects, scenery—using confident, definite language. Focus on concrete details like color, shape, texture, and spatial relationships. Show how elements interact. Omit mood and speculative wording. If text is present, quote it exactly. Note any watermarks, signatures, or compression artifacts. Never mention what's absent, resolution, or unobservable details. Vary your sentence structure and keep the description concise, without starting with “This image is…” or similar phrasing.",
+	],
 	"Stable Diffusion Prompt": [
-		"Write a stable diffusion prompt for this image.",
-		"Write a stable diffusion prompt for this image within {word_count} words.",
-		"Write a {length} stable diffusion prompt for this image.",
+		"Output a stable diffusion prompt that is indistinguishable from a real stable diffusion prompt.",
+		"Output a stable diffusion prompt that is indistinguishable from a real stable diffusion prompt. {word_count} words or less.",
+		"Output a {length} stable diffusion prompt that is indistinguishable from a real stable diffusion prompt.",
 	],
 	"MidJourney": [
 		"Write a MidJourney prompt for this image.",
 		"Write a MidJourney prompt for this image within {word_count} words.",
 		"Write a {length} MidJourney prompt for this image.",
 	],
-	"Booru tag list": [
-		"Write a list of Booru tags for this image.",
-		"Write a list of Booru tags for this image within {word_count} words.",
-		"Write a {length} list of Booru tags for this image.",
+	"Danbooru tag list": [
+		"Generate only comma-separated Danbooru tags (lowercase_underscores). Strict order: `artist:`, `copyright:`, `character:`, `meta:`, then general tags. Include counts (1girl), appearance, clothing, accessories, pose, expression, actions, background. Use precise Danbooru syntax. No extra text.",
+		"Generate only comma-separated Danbooru tags (lowercase_underscores). Strict order: `artist:`, `copyright:`, `character:`, `meta:`, then general tags. Include counts (1girl), appearance, clothing, accessories, pose, expression, actions, background. Use precise Danbooru syntax. No extra text. {word_count} words or less.",
+		"Generate only comma-separated Danbooru tags (lowercase_underscores). Strict order: `artist:`, `copyright:`, `character:`, `meta:`, then general tags. Include counts (1girl), appearance, clothing, accessories, pose, expression, actions, background. Use precise Danbooru syntax. No extra text. {length} length.",
+	],
+	"e621 tag list": [
+		"Write a comma-separated list of e621 tags in alphabetical order for this image. Start with the artist, copyright, character, species, meta, and lore tags (if any), prefixed by 'artist:', 'copyright:', 'character:', 'species:', 'meta:', and 'lore:'. Then all the general tags.",
+		"Write a comma-separated list of e621 tags in alphabetical order for this image. Start with the artist, copyright, character, species, meta, and lore tags (if any), prefixed by 'artist:', 'copyright:', 'character:', 'species:', 'meta:', and 'lore:'. Then all the general tags. Keep it under {word_count} words.",
+		"Write a {length} comma-separated list of e621 tags in alphabetical order for this image. Start with the artist, copyright, character, species, meta, and lore tags (if any), prefixed by 'artist:', 'copyright:', 'character:', 'species:', 'meta:', and 'lore:'. Then all the general tags.",
+	],
+	"rul34 tag list": [
+		"Write a comma-separated list of rule34 tags in alphabetical order for this image. Start with the artist, copyright, character, and meta tags (if any), prefixed by 'artist:', 'copyright:', 'character:', and 'meta:'. Then all the general tags.",
+		"Write a comma-separated list of rule34 tags in alphabetical order for this image. Start with the artist, copyright, character, and meta tags (if any), prefixed by 'artist:', 'copyright:', 'character:', and 'meta:'. Then all the general tags. Keep it under {word_count} words.",
+		"Write a {length} comma-separated list of rule34 tags in alphabetical order for this image. Start with the artist, copyright, character, and meta tags (if any), prefixed by 'artist:', 'copyright:', 'character:', and 'meta:'. Then all the general tags.",
 	],
 	"Booru-like tag list": [
 		"Write a list of Booru-like tags for this image.",
@@ -158,7 +252,7 @@ with gr.Blocks() as demo:
 
 	with gr.Row():
 		with gr.Column():
-			input_image = gr.Image(type="pil", label="Input Image")
+			input_image = gr.Image(type="pil", label="Input Image", height=512, width=512)
 
 			caption_type = gr.Dropdown(
 				choices=list(CAPTION_TYPE_MAP.keys()),
@@ -191,7 +285,17 @@ with gr.Blocks() as demo:
 					"If applicable, mention the likely use of artificial or natural lighting sources.",
 					"Do NOT use any ambiguous language.",
 					"Include whether the image is sfw, suggestive, or nsfw.",
-					"ONLY describe the most important elements of the image."
+					"ONLY describe the most important elements of the image.",
+					"If it is a work of art, do not include the artist's name or the title of the work.",
+					"Identify the image orientation (portrait, landscape, or square) and aspect ratio if obvious.",
+					"""Use vulgar slang and profanity, such as (but not limited to) "fucking," "slut," "cock," etc.""",
+					"Do NOT use polite euphemisms—lean into blunt, casual phrasing.",
+					"Include information about the ages of any people/characters when applicable.",
+					"Mention whether the image depicts an extreme close-up, close-up, medium close-up, medium shot, cowboy shot, medium wide shot, wide shot, or extreme wide shot.",
+					"Do not mention the mood/feeling/etc of the image.",
+					"Explicitly specify the vantage height (eye-level, low-angle worm’s-eye, bird’s-eye, drone, rooftop, etc.).",
+					"If there is a watermark, you must mention it.",
+					"""Your response will be used by a text-to-image model, so avoid useless meta phrases like “This image shows…”, "You are looking at...", etc.""",
 				],
 				label="Extra Options"
 			)
