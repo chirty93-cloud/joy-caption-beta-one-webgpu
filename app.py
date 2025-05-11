@@ -13,12 +13,14 @@ TITLE = """<style>
                  gap:16px; margin:4px 0 12px;}
   .joy-header h1{margin:0; font-size:1.9rem; line-height:1.2;}
   .joy-header p {margin:2px 0 0; font-size:0.9rem; color:#666;}
+  .joy-header img{height:56px;}
 </style>
 
 <div class="joy-header">
+  <img src="logo.svg" alt="JoyCaption logo">
   <div>
     <h1>JoyCaption <span style="font-weight:400">Beta&nbsp;One</span></h1>
-    <p>Image-captioning model &nbsp;|&nbsp; build 2025-05-10a</p>
+    <p>Image-captioning model &nbsp;|&nbsp; build mb3500zp</p>
   </div>
 </div>
 <hr>"""
@@ -46,12 +48,12 @@ DESCRIPTION = """
   <tr><td><strong>Straightforward</strong></td>
       <td>Objective, no fluff, and more succinct than Descriptive.</td></tr>
   <tr><td><strong>Stable Diffusion Prompt</strong></td>
-      <td>Reverse-engineers a prompt that could have produced the image in a SD/T2I model.<br><em>⚠︎ Experimental – can glitch ≈ 3 % of the time.</em></td></tr>
+      <td>Reverse-engineers a prompt that could have produced the image in a SD/T2I model.<br><em>⚠︎ Experimental – can glitch ≈ 3% of the time.</em></td></tr>
   <tr><td><strong>MidJourney</strong></td>
-      <td>Same idea as above but tuned to MidJourney’s prompt style.<br><em>⚠︎ Experimental – can glitch ≈ 3 % of the time.</em></td></tr>
+      <td>Same idea as above but tuned to MidJourney’s prompt style.<br><em>⚠︎ Experimental – can glitch ≈ 3% of the time.</em></td></tr>
   <tr><td><strong>Danbooru tag list</strong></td>
       <td>Comma-separated tags strictly following Danbooru conventions
-          (artist:, copyright:, etc.). Lower-case underscores only.<br><em>⚠︎ Experimental – can glitch ≈ 3 %.</em></td></tr>
+          (artist:, copyright:, etc.). Lower-case underscores only.<br><em>⚠︎ Experimental – can glitch ≈ 3% of the time..</em></td></tr>
   <tr><td><strong>e621 tag list</strong></td>
       <td>Alphabetical, namespaced tags in e621 style – includes species/meta
           tags when relevant.<br><em>⚠︎ Experimental – can glitch ≈ 3 %.</em></td></tr>
@@ -59,7 +61,7 @@ DESCRIPTION = """
       <td>Rule34 style alphabetical tag dump; artist/copyright/character
           prefixes first.<br><em>⚠︎ Experimental – can glitch ≈ 3 %.</em></td></tr>
   <tr><td><strong>Booru-like tag list</strong></td>
-      <td>Looser tag list when you want labels but not a specific Booru format.<br><em>⚠︎ Experimental – can glitch ≈ 3 %.</em></td></tr>
+      <td>Looser tag list when you want labels but not a specific Booru format.<br><em>⚠︎ Experimental – can glitch ≈ 3% of the time..</em></td></tr>
   <tr><td><strong>Art Critic</strong></td>
       <td>Paragraph of art-historical commentary: composition, symbolism, style,
           lighting, movement, etc.</td></tr>
@@ -163,6 +165,8 @@ CAPTION_TYPE_MAP = {
 		"Write a {length} caption for this image as if it were being used for a social media post.",
 	],
 }
+NAME_OPTION = "If there is a person/character in the image you must refer to them as {name}."
+
 
 
 
@@ -192,6 +196,11 @@ def build_prompt(caption_type: str, caption_length: str | int, extra_options: li
 		length=caption_length,
 		word_count=caption_length,
 	)
+
+
+def toggle_name_box(selected_options: list[str]):
+	"""Show the name textbox only when the specific option is selected."""
+	return gr.update(visible=NAME_OPTION in selected_options)
 
 
 @spaces.GPU()
@@ -271,7 +280,7 @@ with gr.Blocks() as demo:
 			with gr.Accordion("Extra Options", open=False):
 				extra_options = gr.CheckboxGroup(
 					choices=[
-						"If there is a person/character in the image you must refer to them as {name}.",
+						NAME_OPTION,
 						"Do NOT include information about people/characters that cannot be changed (like ethnicity, gender, etc), but do still include changeable attributes (like hair style).",
 						"Include information about lighting.",
 						"Include information about camera angle.",
@@ -302,7 +311,7 @@ with gr.Blocks() as demo:
 					label="Select one or more",
 				)
 			
-			name_input = gr.Textbox(label="Person / Character Name")
+			name_input = gr.Textbox(label="Person / Character Name", visible=False)
 
 			with gr.Accordion("Generation settings", open=False):
 				temperature_slider = gr.Slider(
@@ -324,6 +333,13 @@ with gr.Blocks() as demo:
 		
 		with gr.Column():
 			prompt_box = gr.Textbox(lines=4, label="Prompt", interactive=True)
+
+			# Show the name input box only when the specific option is selected
+			extra_options.change(
+				toggle_name_box,
+				inputs=extra_options,
+				outputs=name_input,
+			)
 
 			# Auto-update prompt box whenever any of the inputs change
 			for ctrl in (caption_type, caption_length, extra_options, name_input):
