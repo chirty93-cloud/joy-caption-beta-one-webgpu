@@ -58,15 +58,15 @@ DESCRIPTION = """
       <td>Same idea as above but tuned to MidJourney’s prompt style.<br><em>⚠︎ Experimental – can glitch ≈ 3% of the time.</em></td></tr>
   <tr><td><strong>Danbooru tag list</strong></td>
       <td>Comma-separated tags strictly following Danbooru conventions
-          (artist:, copyright:, etc.). Lower-case underscores only.<br><em>⚠︎ Experimental – can glitch ≈ 3% of the time..</em></td></tr>
+          (artist:, copyright:, etc.). Lower-case underscores only.<br><em>⚠︎ Experimental – can glitch ≈ 3% of the time.</em></td></tr>
   <tr><td><strong>e621 tag list</strong></td>
       <td>Alphabetical, namespaced tags in e621 style – includes species/meta
-          tags when relevant.<br><em>⚠︎ Experimental – can glitch ≈ 3 %.</em></td></tr>
+          tags when relevant.<br><em>⚠︎ Experimental – can glitch ≈ 3% of the time.</em></td></tr>
   <tr><td><strong>rul34 tag list</strong></td>
       <td>Rule34 style alphabetical tag dump; artist/copyright/character
-          prefixes first.<br><em>⚠︎ Experimental – can glitch ≈ 3 %.</em></td></tr>
+          prefixes first.<br><em>⚠︎ Experimental – can glitch ≈ 3% of the time.</em></td></tr>
   <tr><td><strong>Booru-like tag list</strong></td>
-      <td>Looser tag list when you want labels but not a specific Booru format.<br><em>⚠︎ Experimental – can glitch ≈ 3% of the time..</em></td></tr>
+      <td>Looser tag list when you want labels but not a specific Booru format.<br><em>⚠︎ Experimental – can glitch ≈ 3% of the time.</em></td></tr>
   <tr><td><strong>Art Critic</strong></td>
       <td>Paragraph of art-historical commentary: composition, symbolism, style,
           lighting, movement, etc.</td></tr>
@@ -213,6 +213,10 @@ def toggle_name_box(selected_options: list[str]):
 @torch.no_grad()
 def chat_joycaption(input_image: Image.Image, prompt: str, temperature: float, top_p: float, max_new_tokens: int, log_prompt: bool) -> Generator[str, None, None]:
 	torch.cuda.empty_cache()
+
+	if input_image is None:
+		yield "No image provided. Please upload an image."
+		return
 
 	if log_prompt:
 		print(f"PromptLog: {repr(prompt)}")
