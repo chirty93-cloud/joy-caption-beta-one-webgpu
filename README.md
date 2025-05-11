@@ -1,6 +1,6 @@
 ---
 title: Joy Caption Beta One
-emoji: 🚀
+emoji: 🖼️💬
 colorFrom: yellow
 colorTo: blue
 sdk: gradio

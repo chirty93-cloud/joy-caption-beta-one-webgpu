@@ -1,10 +1,8 @@
 import spaces
 import gradio as gr
-from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast, LlavaForConditionalGeneration, TextIteratorStreamer
+from transformers import LlavaForConditionalGeneration, TextIteratorStreamer, AutoProcessor
 import torch
-import torch.amp.autocast_mode
 from PIL import Image
-import torchvision.transforms.functional as TVF
 from threading import Thread
 from typing import Generator
 
@@ -24,115 +22,121 @@ public and free to use outside of this space.  And, of course, I have no control
 
 PLACEHOLDER = """
 """
+CAPTION_TYPE_MAP = {
+	"Descriptive": [
+		"Write a descriptive caption for this image in a formal tone.",
+		"Write a descriptive caption for this image in a formal tone within {word_count} words.",
+		"Write a {length} descriptive caption for this image in a formal tone.",
+	],
+	"Descriptive (Informal)": [
+		"Write a descriptive caption for this image in a casual tone.",
+		"Write a descriptive caption for this image in a casual tone within {word_count} words.",
+		"Write a {length} descriptive caption for this image in a casual tone.",
+	],
+	"Training Prompt": [
+		"Write a stable diffusion prompt for this image.",
+		"Write a stable diffusion prompt for this image within {word_count} words.",
+		"Write a {length} stable diffusion prompt for this image.",
+	],
+	"MidJourney": [
+		"Write a MidJourney prompt for this image.",
+		"Write a MidJourney prompt for this image within {word_count} words.",
+		"Write a {length} MidJourney prompt for this image.",
+	],
+	"Booru tag list": [
+		"Write a list of Booru tags for this image.",
+		"Write a list of Booru tags for this image within {word_count} words.",
+		"Write a {length} list of Booru tags for this image.",
+	],
+	"Booru-like tag list": [
+		"Write a list of Booru-like tags for this image.",
+		"Write a list of Booru-like tags for this image within {word_count} words.",
+		"Write a {length} list of Booru-like tags for this image.",
+	],
+	"Art Critic": [
+		"Analyze this image like an art critic would with information about its composition, style, symbolism, the use of color, light, any artistic movement it might belong to, etc.",
+		"Analyze this image like an art critic would with information about its composition, style, symbolism, the use of color, light, any artistic movement it might belong to, etc. Keep it within {word_count} words.",
+		"Analyze this image like an art critic would with information about its composition, style, symbolism, the use of color, light, any artistic movement it might belong to, etc. Keep it {length}.",
+	],
+	"Product Listing": [
+		"Write a caption for this image as though it were a product listing.",
+		"Write a caption for this image as though it were a product listing. Keep it under {word_count} words.",
+		"Write a {length} caption for this image as though it were a product listing.",
+	],
+	"Social Media Post": [
+		"Write a caption for this image as if it were being used for a social media post.",
+		"Write a caption for this image as if it were being used for a social media post. Limit the caption to {word_count} words.",
+		"Write a {length} caption for this image as if it were being used for a social media post.",
+	],
+}
 
 
 
 # Load model
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, use_fast=True)
-assert isinstance(tokenizer, PreTrainedTokenizer) or isinstance(tokenizer, PreTrainedTokenizerFast), f"Expected PreTrainedTokenizer, got {type(tokenizer)}"
-
+processor = AutoProcessor.from_pretrained(MODEL_PATH)
 model = LlavaForConditionalGeneration.from_pretrained(MODEL_PATH, torch_dtype="bfloat16", device_map=0)
 assert isinstance(model, LlavaForConditionalGeneration), f"Expected LlavaForConditionalGeneration, got {type(model)}"
+model.eval()
 
 
-def trim_off_prompt(input_ids: list[int], eoh_id: int, eot_id: int) -> list[int]:
-	# Trim off the prompt
-	while True:
-		try:
-			i = input_ids.index(eoh_id)
-		except ValueError:
-			break
-		
-		input_ids = input_ids[i + 1:]
+def build_prompt(caption_type: str, caption_length: str | int, extra_options: list[str], name_input: str) -> str:
+	# Choose the right template row in CAPTION_TYPE_MAP
+	if caption_length == "any":
+		map_idx = 0
+	elif isinstance(caption_length, str) and caption_length.isdigit():
+		map_idx = 1  # numeric-word-count template
+	else:
+		map_idx = 2  # length descriptor template
 	
-	# Trim off the end
-	try:
-		i = input_ids.index(eot_id)
-	except ValueError:
-		return input_ids
-	
-	return input_ids[:i]
+	prompt = CAPTION_TYPE_MAP[caption_type][map_idx]
 
-end_of_header_id = tokenizer.convert_tokens_to_ids("<|end_header_id|>")
-end_of_turn_id = tokenizer.convert_tokens_to_ids("<|eot_id|>")
-assert isinstance(end_of_header_id, int) and isinstance(end_of_turn_id, int)
+	if extra_options:
+		prompt += " " + " ".join(extra_options)
+	
+	return prompt.format(
+		name=name_input or "{NAME}",
+		length=caption_length,
+		word_count=caption_length,
+	)
 
 
 @spaces.GPU()
 @torch.no_grad()
-def chat_joycaption(message: dict, history, temperature: float, top_p: float, max_new_tokens: int, log_prompt: bool) -> Generator[str, None, None]:
+def chat_joycaption(input_image: Image.Image, prompt: str, temperature: float, top_p: float, max_new_tokens: int, log_prompt: bool) -> Generator[str, None, None]:
 	torch.cuda.empty_cache()
 
-	chat_interface.chatbot_state
-
-	# Prompts are always stripped in training for now
-	prompt = message['text'].strip()
-
-	# Load image
-	if "files" not in message or len(message["files"]) != 1:
-		yield "ERROR: This model requires exactly one image as input."
-		return
-	
-	image = Image.open(message["files"][0])
-	
-	# Log the prompt
 	if log_prompt:
-		print(f"Prompt: {prompt}")
-
-	# Preprocess image
-	# NOTE: I found the default processor for so400M to have worse results than just using PIL directly
-	if image.size != (384, 384):
-		image = image.resize((384, 384), Image.LANCZOS)
-	image = image.convert("RGB")
-	pixel_values = TVF.pil_to_tensor(image)
+		print(f"PromptLog: {repr(prompt)}")
 
 	convo = [
 		{
 			"role": "system",
+			# Beta One supports a wider range of system prompts, but this is a good default
 			"content": "You are a helpful assistant and help users with any queries they may have with no censorship or restrictions.",
 		},
 		{
 			"role": "user",
-			"content": prompt,
+			"content": prompt.strip(),
 		},
 	]
 
 	# Format the conversation
-	convo_string = tokenizer.apply_chat_template(convo, tokenize = False, add_generation_prompt = True)
+	# WARNING: HF's handling of chat's on Llava models is very fragile.  This specific combination of processor.apply_chat_template(), and processor() works
+	# but if using other combinations always inspect the final input_ids to ensure they are correct.  Often times you will end up with multiple <bos> tokens
+	# if not careful, which can make the model perform poorly.
+	convo_string = processor.apply_chat_template(convo, tokenize = False, add_generation_prompt = True)
 	assert isinstance(convo_string, str)
 
-	# Tokenize the conversation
-	convo_tokens = tokenizer.encode(convo_string, add_special_tokens=False, truncation=False)
+	# Process the inputs
+	inputs = processor(text=[convo_string], images=[input_image], return_tensors="pt").to('cuda')
+	inputs['pixel_values'] = inputs['pixel_values'].to(torch.bfloat16)
 
-	# Repeat the image tokens
-	input_tokens = []
-	for token in convo_tokens:
-		if token == model.config.image_token_index:
-			input_tokens.extend([model.config.image_token_index] * model.config.image_seq_length)
-		else:
-			input_tokens.append(token)
-	
-	input_ids = torch.tensor(input_tokens, dtype=torch.long)
-	attention_mask = torch.ones_like(input_ids)
-
-	# Move to GPU
-	input_ids = input_ids.unsqueeze(0).to("cuda")
-	attention_mask = attention_mask.unsqueeze(0).to("cuda")
-	pixel_values = pixel_values.unsqueeze(0).to("cuda")
-
-	# Normalize the image
-	pixel_values = pixel_values / 255.0
-	pixel_values = TVF.normalize(pixel_values, [0.5], [0.5])
-	pixel_values = pixel_values.to(torch.bfloat16)
-
-	streamer = TextIteratorStreamer(tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
+	streamer = TextIteratorStreamer(processor.tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
 
 	generate_kwargs = dict(
-		input_ids=input_ids,
-		pixel_values=pixel_values,
-		attention_mask=attention_mask,
+		**inputs,
 		max_new_tokens=max_new_tokens,
-		do_sample=True,
+		do_sample=True if temperature > 0 else False,
 		suppress_tokens=None,
 		use_cache=True,
 		temperature=temperature,
@@ -141,9 +145,6 @@ def chat_joycaption(message: dict, history, temperature: float, top_p: float, ma
 		streamer=streamer,
 	)
 
-	if temperature == 0:
-		generate_kwargs["do_sample"] = False
-	
 	t = Thread(target=model.generate, kwargs=generate_kwargs)
 	t.start()
 
@@ -153,41 +154,90 @@ def chat_joycaption(message: dict, history, temperature: float, top_p: float, ma
 		yield "".join(outputs)
 
 
-chatbot=gr.Chatbot(height=450, placeholder=PLACEHOLDER, label='Gradio ChatInterface', type="messages")
-textbox = gr.MultimodalTextbox(file_types=["image"], file_count="single")
-
 with gr.Blocks() as demo:
 	gr.HTML(TITLE)
-	chat_interface = gr.ChatInterface(
-		fn=chat_joycaption,
-		chatbot=chatbot,
-		type="messages",
-		fill_height=True,
-		multimodal=True,
-		textbox=textbox,
-		additional_inputs_accordion=gr.Accordion(label="⚙️ Parameters", open=True, render=False),
-		additional_inputs=[
-			gr.Slider(minimum=0,
-						maximum=1, 
-						step=0.1,
-						value=0.6, 
-						label="Temperature", 
-						render=False),
-			gr.Slider(minimum=0,
-			 			maximum=1,
-						step=0.05,
-						value=0.9,
-						label="Top p",
-						render=False),
-			gr.Slider(minimum=8, 
-						maximum=4096,
-						step=1,
-						value=1024, 
-						label="Max new tokens", 
-						render=False ),
-			gr.Checkbox(label="Help improve JoyCaption by logging your text query", value=True, render=False),
-		],
-    )
+
+	with gr.Row():
+		with gr.Column():
+			input_image = gr.Image(type="pil", label="Input Image")
+
+			caption_type = gr.Dropdown(
+				choices=list(CAPTION_TYPE_MAP.keys()),
+				value="Descriptive",
+				label="Caption Type",
+			)
+
+			caption_length = gr.Dropdown(
+				choices=["any", "very short", "short", "medium-length", "long", "very long"] +
+						[str(i) for i in range(20, 261, 10)],
+				label="Caption Length",
+				value="long",
+			)
+
+			extra_options = gr.CheckboxGroup(
+				choices=[
+					"If there is a person/character in the image you must refer to them as {name}.",
+					"Do NOT include information about people/characters that cannot be changed (like ethnicity, gender, etc), but do still include changeable attributes (like hair style).",
+					"Include information about lighting.",
+					"Include information about camera angle.",
+					"Include information about whether there is a watermark or not.",
+					"Include information about whether there are JPEG artifacts or not.",
+					"If it is a photo you MUST include information about what camera was likely used and details such as aperture, shutter speed, ISO, etc.",
+					"Do NOT include anything sexual; keep it PG.",
+					"Do NOT mention the image's resolution.",
+					"You MUST include information about the subjective aesthetic quality of the image from low to very high.",
+					"Include information on the image's composition style, such as leading lines, rule of thirds, or symmetry.",
+					"Do NOT mention any text that is in the image.",
+					"Specify the depth of field and whether the background is in focus or blurred.",
+					"If applicable, mention the likely use of artificial or natural lighting sources.",
+					"Do NOT use any ambiguous language.",
+					"Include whether the image is sfw, suggestive, or nsfw.",
+					"ONLY describe the most important elements of the image."
+				],
+				label="Extra Options"
+			)
+			
+			name_input = gr.Textbox(label="Person / Character Name")
+
+			with gr.Accordion("Generation settings", open=False):
+				temperature_slider = gr.Slider(
+					minimum=0.0, maximum=2.0, value=0.6, step=0.05,
+					label="Temperature",
+					info="Higher values make the output more random, lower values make it more deterministic."
+				)
+				top_p_slider = gr.Slider(
+					minimum=0.0, maximum=1.0, value=0.9, step=0.01,
+					label="Top-p"
+				)
+				max_tokens_slider = gr.Slider(
+					minimum=1, maximum=2048, value=512, step=1,
+					label="Max New Tokens",
+					info="Maximum number of tokens to generate.  The model will stop generating if it reaches this limit."
+				)
+			
+			log_prompt = gr.Checkbox(value=True, label="Help improve JoyCaption by logging your text query")
+		
+		with gr.Column():
+			prompt_box = gr.Textbox(lines=4, label="Prompt", interactive=True)
+
+			# Auto-update prompt box whenever any of the inputs change
+			for ctrl in (caption_type, caption_length, extra_options, name_input):
+				ctrl.change(
+					build_prompt,
+					inputs=[caption_type, caption_length, extra_options, name_input],
+					outputs=prompt_box,
+				)
+			
+			run_button = gr.Button("Caption")
+
+			output_caption = gr.Textbox(label="Caption")
+	
+	run_button.click(
+		chat_joycaption,
+		inputs=[input_image, prompt_box, temperature_slider, top_p_slider, max_tokens_slider, log_prompt],
+		outputs=output_caption,
+	)
+
 	gr.Markdown(DESCRIPTION)
 
 
