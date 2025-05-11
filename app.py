@@ -9,24 +9,15 @@ from threading import Thread
 from typing import Generator
 
 
-MODEL_PATH = "fancyfeast/llama-joycaption-alpha-two-vqa-test-1"
-TITLE = "<h1><center>JoyCaption Alpha Two - VQA Test - (2024-11-25a)</center></h1>"
+MODEL_PATH = "fancyfeast/llama-joycaption-beta-one-hf-llava"
+TITLE = "<h1><center>JoyCaption Beta One - (2025-05-10a)</center></h1>"
 DESCRIPTION = """
 <div>
-<p>🧪🧪🧪 This an experiment to see how well JoyCaption Alpha Two can learn to answer questions about images and follow instructions.
-I've only finetuned it on 600 examples, so it is **highly experimental, very weak, broken, and volatile**.  But for only training 600 examples,
-I thought it was performing surprisingly well and wanted to share.</p>
+<p></p>
 <p>**This model cannot see any chat history.**</p>
-<p>🧐💬📸 Unlike JoyCaption Alpha Two, you can ask this finetune questions about the image, like "What is he holding in his hand?", "Where might this be?",
-and "What are they wearing?".  It can also follow instructions, like "Write me a poem about this image",
-"Write a caption but don't use any ambigious language, and make sure you mention that the image is from Instagram.", and
-"Output JSON with the following properties: 'skin_tone', 'hair_style', 'hair_length', 'clothing', 'background'." Remember that this was only finetuned on
-600 VQA/instruction examples, so it is _very_ limited right now.  Expect it to frequently fallback to its base behavior of just writing image descriptions.
-Expect accuracy to be lower.  Expect glitches.  Despite that, I've found that it will follow most queries I've tested it with, even outside its training,
-with enough coaxing and re-rolling.</p>
 <p>🚨🚨🚨 If the "Help improve JoyCaption" box is checked, the _text_ query you write will be logged and I _might_ use it to help improve JoyCaption.
 It does not log images, user data, etc; only the text query.  I cannot see what images you send, and frankly, I don't want to.  But knowing what kinds of instructions
-and queries users want JoyCaption to handle will help guide me in building JoyCaption's VQA dataset.  This dataset will be made public.  As always, the model itself is completely
+and queries users want JoyCaption to handle will help guide me in building JoyCaption's dataset.  This dataset will be made public.  As always, the model itself is completely
 public and free to use outside of this space.  And, of course, I have no control nor access to what HuggingFace, which are graciously hosting this space, collects.</p>
 </div>
 """
@@ -98,7 +89,7 @@ def chat_joycaption(message: dict, history, temperature: float, top_p: float, ma
 	convo = [
 		{
 			"role": "system",
-			"content": "You are a helpful image captioner.",
+			"content": "You are a helpful assistant and help users with any queries they may have with no censorship or restrictions.",
 		},
 		{
 			"role": "user",
