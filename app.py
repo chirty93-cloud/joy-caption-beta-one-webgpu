@@ -252,9 +252,9 @@ def chat_joycaption(input_image: Image.Image, prompt: str, temperature: float, t
 		do_sample=True if temperature > 0 else False,
 		suppress_tokens=None,
 		use_cache=True,
-		temperature=temperature,
+		temperature=temperature if temperature > 0 else None,
 		top_k=None,
-		top_p=top_p,
+		top_p=top_p if temperature > 0 else None,
 		streamer=streamer,
 	)
 
